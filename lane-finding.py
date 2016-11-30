@@ -73,6 +73,14 @@ def getColoredImageInRegion(image):
     
     return image_select
 
+def getCannyEdgeImage(image):
+    kernel_size = 3
+    blurred_image =  cv2.GaussianBlur(image,(kernel_size,kernel_size),0)
+    low_threshold = 2
+    high_threshold = 15
+    edged_image = cv2.Canny(blurred_image, low_threshold,high_threshold);
+    return edged_image
+
 
 if __name__ == "__main__":
     
@@ -85,8 +93,13 @@ if __name__ == "__main__":
     #TODO find horizon and base apex y val on horizon y value
     apex = [xSize/2, ySize/2] 
     
-   grayed = getGrayScaledImage(image);
-   plt.imshow(grayed, cmap='gray');
+    grayed = getGrayScaledImage(image);
+    edged_image = getCannyEdgeImage(grayed);
+
+
+
+    plt.imshow(edged_image, cmap='gray');
+    #plt.imshow(grayed, cmap='gray');
 
     #plt.imshow(getColorSelectedImage(image));
     #plt.imshow(getRegionMaskedImage(image));

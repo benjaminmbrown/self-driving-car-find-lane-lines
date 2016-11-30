@@ -8,3 +8,6 @@ We import an image, create thresholds, then use bitwise OR to create a new image
 <img src="https://media.giphy.com/media/3o7TKKcBgjMd7QRUSk/giphy.gif"/>
 #Using region masking & selection to highlight lanes
 <img src="https://media.giphy.com/media/l2JhuQFoDs8gdD9du/giphy.gif"/>
+
+#1st attempt at canny edge detection
+<img src="https://media.giphy.com/media/l2JhnPEc2tLPrUUGA/giphy.gif"/>
