@@ -11,3 +11,6 @@ We import an image, create thresholds, then use bitwise OR to create a new image
 
 #1st attempt at canny edge detection
 <img src="https://media.giphy.com/media/l2JhnPEc2tLPrUUGA/giphy.gif"/>
+
+#Improved thresholds on canny detection
+<img src="https://media.giphy.com/media/l3vR7ICI0lK3KzzcA/giphy.gif"/>
