@@ -1,3 +1,4 @@
+
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import numpy as np
@@ -49,7 +50,7 @@ def getColorSelectedImage(image):
 def getRegionMaskedImage(image):
     region_select = np.copy(image)
     region_thresholds = getRegionThresholds(region_select)
-    region_select[~region_thresholds] = [255, 0, 0]
+    region_select[region_thresholds] = [255, 0, 0]
     
     return region_select
 
@@ -58,7 +59,7 @@ def getColoredImageInRegion(image):
     color_select = np.copy(image)
     
     color_thresholds = getColorThresholds(color_select)
-    region_thresholds = getRegionThresholds(region_select)
+    region_thresholds = getRegionThresholds(image_select)
     
     #color_select[color_thresholds] = [0,0,0]
     image_select[~color_thresholds & region_thresholds] = [255,0,0]
@@ -82,5 +83,7 @@ if __name__ == "__main__":
 
     #plt.imshow(getColorSelectedImage(image));
     #plt.imshow(getRegionMaskedImage(image));
+    plt.interactive(False)
     plt.imshow(getColoredImageInRegion(image));
+    plt.show()
     
