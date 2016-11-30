@@ -14,3 +14,6 @@ We import an image, create thresholds, then use bitwise OR to create a new image
 
 #Improved thresholds on canny detection
 <img src="https://media.giphy.com/media/l3vR7ICI0lK3KzzcA/giphy.gif"/>
+
+#Hough tranform to detect line sets
+<img src="https://media.giphy.com/media/3o6Zt94A6nRVf9U6WI/giphy.gif"/>

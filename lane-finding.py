@@ -8,7 +8,8 @@ plt.ion()
 plt.interactive(False)
 
 def importImage():
-    image = mpimg.imread('test.jpg')
+    #image = mpimg.imread('exit-ramp.png')#.jpg
+    image =(mpimg.imread('exit-ramp.png')*255).astype('uint8')
     return np.copy(image)
 
 
@@ -29,14 +30,11 @@ def getRegionThresholds (image):
     return region_thresholds
 
 def getColorThresholds(image):
-    #color select criteria
     red_thresh = 200
     green_thresh = 200
     blue_thresh = 200
 
     rgb_thresh = [red_thresh,green_thresh,blue_thresh]
-
-    #identify pixels below threshold
     color_thresholds = (image[:,:,0] < rgb_thresh[0]) | (image[:,:,1] < rgb_thresh[1]) | (image[:,:,2] < rgb_thresh[2])
     
     return color_thresholds
@@ -76,11 +74,35 @@ def getColoredImageInRegion(image):
 def getCannyEdgeImage(image):
     kernel_size = 5
     blurred_image =  cv2.GaussianBlur(image,(kernel_size,kernel_size),0)
-    low_threshold = 120
-    high_threshold = 200
+    low_threshold = 110
+    high_threshold = 160
     edged_image = cv2.Canny(blurred_image, low_threshold,high_threshold);
     return edged_image
 
+def getHoughTransform(image):
+    rho = 1
+    theta = np.pi/180
+    threshold = 1
+    min_line_length = 15
+    max_line_gap  = 5
+    line_image = np.copy(image)*0
+
+    lines = cv2.HoughLinesP(image,rho,theta,threshold,np.array([]), min_line_length, max_line_gap)
+
+    for line in lines:
+        for x1,y1,x2,y2 in line:
+            cv2.line(line_image,(x1,y1),(x2,y2 ),(255,0,0),10)
+
+    #color_edges = np.dstack((image,image,image))
+    color_edges = np.copy(image);
+
+    print(color_edges.shape)
+    print(image.shape)
+    print(line_image.shape)
+
+    hough_transformed_image = cv2.addWeighted(color_edges,0.8,line_image,1,0)
+
+    return hough_transformed_image
 
 if __name__ == "__main__":
     
@@ -95,10 +117,12 @@ if __name__ == "__main__":
     
     grayed = getGrayScaledImage(image);
     edged_image = getCannyEdgeImage(grayed);
+    line_detected_image = getHoughTransform(edged_image);
 
 
+    plt.imshow(line_detected_image)
+    #plt.imshow(edged_image, cmap='gray');
 
-    plt.imshow(edged_image, cmap='gray');
     #plt.imshow(grayed, cmap='gray');
 
     #plt.imshow(getColorSelectedImage(image));
