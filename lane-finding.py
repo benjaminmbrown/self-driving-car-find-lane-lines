@@ -74,10 +74,10 @@ def getColoredImageInRegion(image):
     return image_select
 
 def getCannyEdgeImage(image):
-    kernel_size = 3
+    kernel_size = 5
     blurred_image =  cv2.GaussianBlur(image,(kernel_size,kernel_size),0)
-    low_threshold = 2
-    high_threshold = 15
+    low_threshold = 120
+    high_threshold = 200
     edged_image = cv2.Canny(blurred_image, low_threshold,high_threshold);
     return edged_image
 
