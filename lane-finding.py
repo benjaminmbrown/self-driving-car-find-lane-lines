@@ -80,11 +80,11 @@ def getCannyEdgeImage(image):
     return edged_image
 
 def getHoughTransform(image):
-    rho = 1
-    theta = np.pi/180
-    threshold = 1
-    min_line_length = 15
-    max_line_gap  = 5
+    rho = 1 # distance resolution in pixels of the Hough grid
+    theta = np.pi/180 # angular resolution in radians of the Hough grid
+    threshold =  # minimum number of votes (intersections in Hough grid cell)
+    min_line_length = 15 #minimum number of pixels making up a line
+    max_line_gap  = 5 # maximum gap in pixels between connectable line segments
     line_image = np.copy(image)*0
 
     lines = cv2.HoughLinesP(image,rho,theta,threshold,np.array([]), min_line_length, max_line_gap)
