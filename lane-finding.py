@@ -4,6 +4,8 @@ import matplotlib.image as mpimg
 import numpy as np
 import cv2
 import os
+from moviepy.editor import VideoFileClip
+from IPython.display import HTML
 
 plt.ion()
 plt.interactive(False)
@@ -11,11 +13,11 @@ plt.interactive(False)
 def importImage():
     #image = mpimg.imread('exit-ramp.png')#.jpg
     image =(mpimg.imread('exit-ramp.png')*255).astype('uint8')
+
     return np.copy(image)
 
 
 def getRegionThresholds (image):
-  
     degree = 1
 
     fit_line_left = np.polyfit((left_bottom[0], apex[0]), (left_bottom[1], apex[1]), degree)
@@ -46,8 +48,8 @@ def getColorSelectedImage(image):
     return color_select
  
 def getGrayScaledImage(image):
-	gray = cv2.cvtColor(image,cv2.COLOR_RGB2GRAY);
-	return gray
+	#return cv2.cvtColor(image,cv2.COLOR_RGB2GRAY);
+    return cv2.cvtColor(image,cv2.COLOR_BGR2GRAY);
     
 def getRegionMaskedImage(image):
     region_select = np.copy(image)
@@ -107,7 +109,7 @@ def adaptive_bilateral_filter(img, kernel_size,):
 
 def bilateral_filter(img, diameter, sigmaColor, sigmaSpace):
     """(src, d, sigmaColor, sigmaSpace[, dst[, borderType]]) → dst¶"""
-    return cv2.bilateralFilter(img,9,75,75)
+    return cv2.bilateralFilter(img,diameter,sigmaColor,sigmaSpace)
     
 def gaussian_blur(img, kernel_size):
     """Applies a Gaussian Noise kernel"""
@@ -115,15 +117,9 @@ def gaussian_blur(img, kernel_size):
 
 
 def region_of_interest(img, vertices):
-    """
-    Applies an image mask.
-    
-    Only keeps the region of the image defined by the polygon
-    formed from `vertices`. The rest of the image is set to black.
-    """
     #defining a blank mask to start with
     mask = np.zeros_like(img)   
-    
+  
     #defining a 3 channel or 1 channel color to fill the mask with depending on the input image
     if len(img.shape) > 2:
         channel_count = img.shape[2]  # i.e. 3 or 4 depending on your image
@@ -139,52 +135,23 @@ def region_of_interest(img, vertices):
     return masked_image
 
 def draw_lines(img, lines, color=[255, 0, 0], thickness=5):
-    """
-    NOTE: this is the function you might want to use as a starting point once you want to 
-    average/extrapolate the line segments you detect to map out the full
-    extent of the lane (going from the result shown in raw-lines-example.mp4
-    to that shown in P1_example.mp4).  
-    
-    Think about things like separating line segments by their 
-    slope ((y2-y1)/(x2-x1)) to decide which segments are part of the left
-    line vs. the right line.  Then, you can average the position of each of 
-    the lines and extrapolate to the top and bottom of the lane.
-    
-    This function draws `lines` with `color` and `thickness`.    
-    Lines are drawn on the image inplace (mutates the image).
-    If you want to make the lines semi-transparent, think about combining
-    this function with the weighted_img() function below
-    """
     for line in lines:
         for x1,y1,x2,y2 in line:
             cv2.line(img, (x1, y1), (x2, y2), color, thickness)
 
 
 def hough_lines(img, rho=1, theta=np.pi/180, threshold=1, min_line_len=15, max_line_gap=5):
-    """
-    `img` should be the output of a Canny transform.
-        
-    Returns an image with hough lines drawn.
-    """
+
     lines = cv2.HoughLinesP(img, rho, theta, threshold, np.array([]), minLineLength=min_line_len, maxLineGap=max_line_gap)
     line_img = np.zeros((*img.shape, 3), dtype=np.uint8)
     draw_lines(line_img, lines)
     return line_img
 
 def weighted_img(img, initial_img, α=0.8, β=1., λ=0.):
-    """
-    `img` is the output of the hough_lines(), An image with lines drawn on it.
-    Should be a blank image (all black) with lines drawn on it.
-    
-    `initial_img` should be the image before any processing.
-    
-    
-    initial_img * α + img * β + λ
-    NOTE: initial_img and img must be the same shape!
-    """
     return cv2.addWeighted(initial_img, α, img, β, λ)
 
 def process_image(image):
+
     ySize = image.shape[0]
     xSize = image.shape[1]
     left_bottom = [0, ySize]
@@ -194,37 +161,39 @@ def process_image(image):
 
     vertices = np.array( [[left_bottom,apex,apex,right_bottom]], dtype=np.int32 )
 
-    blurred = bilateral_filter(image, 15,20,20)
-   # plt.imshow(blurred)
-    grayed = getGrayScaledImage(blurred);
-    masked_image = region_of_interest(grayed, vertices)
+    blurred = bilateral_filter(image, 15,100,100);
+    #gaussian_blurred = GaussianBlur(image, 5);
+    #plt.imshow(blurred)
+    grayed = getGrayScaledImage(image);
+    plt.imshow(grayed)
+    masked_image = region_of_interest(blurred, vertices)
+    #plt.imshow(masked_image)
     edged_image = getCannyEdgeImage(masked_image);
-    #line_detected_image = getHoughTransform(edged_image);
+    #plt.imshow(edged_image)
     line_detected_image = hough_lines(edged_image)
+    #plt.imshow(line_detected_image)
     weighted_lined = weighted_img(line_detected_image,image)
+    #plt.imshow(weighted_lined)
     return weighted_lined
 
+def process_video(video):
+    white_output = 'white.mp4'
+    clip1 = VideoFileClip("solidWhiteRight.mp4")
+    white_clip = clip1.fl_image(process_image) #NOTE: this function expects color images!!
+    white_clip.write_videofile(white_output, audio=False)
 
 if __name__ == "__main__":
     
-    image = importImage()
+    #image = importImage()
+    image = cv2.imread('exit_ramp.png');
+    print(image.shape);
     processed_image = process_image(image);
-    
-    #imgArr = os.listdir("test_images/")
+    cv2.imwrite('test.png', processed_image);
+   
+    imgArr = os.listdir("test_images/")
 
-   # for img in imgArr:
-       # process_image(img);
-
-
-    plt.imshow(processed_image)
-    #plt.imshow(edged_image, cmap='gray');
-
-    #plt.imshow(grayed, cmap='gray');
-
-    #plt.imshow(getColorSelectedImage(image));
-    #plt.imshow(getRegionMaskedImage(image));
-    #plt.imshow(getColoredImageInRegion(image));
-
-
+    #for img in imgArr:
+        #process_image(img);
+  
     plt.show()
     

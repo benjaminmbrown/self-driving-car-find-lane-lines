@@ -20,3 +20,9 @@ We import an image, create thresholds, then use bitwise OR to create a new image
 
 #Adding mask to greyscaling, gaussian smoothing, and Hough transform to detect lanes
 <img src ="https://media.giphy.com/media/3oriO5J7MAjjua7NKM/giphy.gif"/>
+
+#Applying bilateral filter blurring to blur image while retaining edges, effectively enhancing them
+<img src = "https://media.giphy.com/media/3oz8xLLpQJyIjqYVMs/giphy.gif"/>
+
+#Modified bilateral blur 
+<img src="https://media.giphy.com/media/3o6Ztg2cziwxzEiHqU/giphy.gif"/>
