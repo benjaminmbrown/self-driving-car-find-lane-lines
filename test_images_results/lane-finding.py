@@ -8,7 +8,8 @@ plt.ion()
 plt.interactive(False)
 
 def importImage():
-    image = mpimg.imread('test.jpg')
+    #image = mpimg.imread('exit-ramp.png')#.jpg
+    image =(mpimg.imread('exit-ramp.png')*255).astype('uint8')
     return np.copy(image)
 
 
@@ -29,14 +30,11 @@ def getRegionThresholds (image):
     return region_thresholds
 
 def getColorThresholds(image):
-    #color select criteria
     red_thresh = 200
     green_thresh = 200
     blue_thresh = 200
 
     rgb_thresh = [red_thresh,green_thresh,blue_thresh]
-
-    #identify pixels below threshold
     color_thresholds = (image[:,:,0] < rgb_thresh[0]) | (image[:,:,1] < rgb_thresh[1]) | (image[:,:,2] < rgb_thresh[2])
     
     return color_thresholds
@@ -73,25 +71,67 @@ def getColoredImageInRegion(image):
     
     return image_select
 
+def getCannyEdgeImage(image):
+    kernel_size = 5
+    blurred_image =  cv2.GaussianBlur(image,(kernel_size,kernel_size),0)
+    low_threshold = 110
+    high_threshold = 160
+    edged_image = cv2.Canny(blurred_image, low_threshold,high_threshold);
+    return edged_image
 
-if __name__ == "__main__":
-    
-    image = importImage()
-    
+def getHoughTransform(image):
+    rho = 1 # distance resolution in pixels of the Hough grid
+    theta = np.pi/180 # angular resolution in radians of the Hough grid
+    threshold =  # minimum number of votes (intersections in Hough grid cell)
+    min_line_length = 15 #minimum number of pixels making up a line
+    max_line_gap  = 5 # maximum gap in pixels between connectable line segments
+    line_image = np.copy(image)*0
+
+    lines = cv2.HoughLinesP(image,rho,theta,threshold,np.array([]), min_line_length, max_line_gap)
+
+    for line in lines:
+        for x1,y1,x2,y2 in line:
+            cv2.line(line_image,(x1,y1),(x2,y2 ),(255,0,0),10)
+
+    #color_edges = np.dstack((image,image,image))
+    color_edges = np.copy(image);
+
+    print(color_edges.shape)
+    print(image.shape)
+    print(line_image.shape)
+
+    hough_transformed_image = cv2.addWeighted(color_edges,0.8,line_image,1,0)
+
+    return hough_transformed_image
+
+def process_image(image):
     ySize = image.shape[0]
     xSize = image.shape[1]
-    left_bottom = [0, ySize]
-    right_bottom = [xSize, ySize]
+    left_bottom = [80, ySize]
+    right_bottom = [xSize-70, ySize]
+    midline = [[xSize/2,0],[xSize/2,ySize]]
     #TODO find horizon and base apex y val on horizon y value
-    apex = [xSize/2, ySize/2] 
-    
-   grayed = getGrayScaledImage(image);
-   plt.imshow(grayed, cmap='gray');
+    apex = [xSize/2, ySize/2+30]
 
-    #plt.imshow(getColorSelectedImage(image));
-    #plt.imshow(getRegionMaskedImage(image));
-    #plt.imshow(getColoredImageInRegion(image));
+    grayed = getGrayScaledImage(image);
+    edged_image = getCannyEdgeImage(grayed);
+    line_detected_image = getHoughTransform(edged_image);
 
+    return processed_image
+
+if __name__ == "__main__":
+
+    imgArr = os.listdir("test_images/")
+
+    for img in imgArr:
+        img = (mpimg.imread('test_images/'+img)*255).astype('uint8')
+        processed_image = process_image(img);
+       
+        #cv2.cvtColor(processed_image, cv2.COLOR_BGR2RGB)
+        cv2.imshow('img',processed_image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        #mpimg.imsave('test_images_results/'+img, processed_image);
 
     plt.show()
     

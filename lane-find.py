@@ -4,20 +4,12 @@ import matplotlib.image as mpimg
 import numpy as np
 import cv2
 import os
-from moviepy.editor import VideoFileClip
-from IPython.display import HTML
 
 plt.ion()
 plt.interactive(False)
 
-def importImage():
-    #image = mpimg.imread('exit-ramp.png')#.jpg
-    image =(mpimg.imread('exit-ramp.png')*255).astype('uint8')
-
-    return np.copy(image)
-
-
 def getRegionThresholds (image):
+  
     degree = 1
 
     fit_line_left = np.polyfit((left_bottom[0], apex[0]), (left_bottom[1], apex[1]), degree)
@@ -39,24 +31,25 @@ def getColorThresholds(image):
 
     rgb_thresh = [red_thresh,green_thresh,blue_thresh]
     color_thresholds = (image[:,:,0] < rgb_thresh[0]) | (image[:,:,1] < rgb_thresh[1]) | (image[:,:,2] < rgb_thresh[2])
+    
     return color_thresholds
     
 def getColorSelectedImage(image):
     color_select = np.copy(image)
     color_thresholds = getColorThresholds(image)
     color_select[color_thresholds] = [0,0,0]
+    
     return color_select
  
 def getGrayScaledImage(image):
-	#return cv2.cvtColor(image,cv2.COLOR_RGB2GRAY);
-    return cv2.cvtColor(image,cv2.COLOR_BGR2GRAY);
+	return cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     
 def getRegionMaskedImage(image):
     region_select = np.copy(image)
     region_thresholds = getRegionThresholds(region_select)
     region_select[region_thresholds] = [255, 0, 0]
+    
     return region_select
-
 
 def getColoredImageInRegion(image):
     image_select = np.copy(image)
@@ -65,10 +58,12 @@ def getColoredImageInRegion(image):
     color_thresholds = getColorThresholds(color_select)
     region_thresholds = getRegionThresholds(image_select)
     
+    #color_select[color_thresholds] = [0,0,0]
     image_select[~color_thresholds & region_thresholds] = [255,0,0]
     
+    #plt.imshow(color_select);
+    
     return image_select
-
 
 def getCannyEdgeImage(image):
     kernel_size = 5
@@ -81,7 +76,7 @@ def getCannyEdgeImage(image):
 def getHoughTransform(image):
     rho = 1 # distance resolution in pixels of the Hough grid
     theta = np.pi/180 # angular resolution in radians of the Hough grid
-    threshold = 3 # minimum number of votes (intersections in Hough grid cell)
+    threshold = 30  # minimum number of votes (intersections in Hough grid cell)
     min_line_length = 15 #minimum number of pixels making up a line
     max_line_gap  = 5 # maximum gap in pixels between connectable line segments
     line_image = np.copy(image)*0
@@ -92,12 +87,43 @@ def getHoughTransform(image):
         for x1,y1,x2,y2 in line:
             cv2.line(line_image,(x1,y1),(x2,y2 ),(255,0,0),10)
 
-    #color_edges = np.dstack((image,image,image))
     color_edges = np.copy(image);
 
     hough_transformed_image = cv2.addWeighted(color_edges,0.8,line_image,1,0)
 
     return hough_transformed_image
+
+def region_of_interest(img, vertices):
+
+    mask = np.zeros_like(img)   
+  
+    #defining a 3 channel or 1 channel color to fill the mask with depending on the input image
+    if len(img.shape) > 2:
+        channel_count = img.shape[2]  # i.e. 3 or 4 depending on your image
+        ignore_mask_color = (255,) * channel_count
+    else:
+        ignore_mask_color = 255
+        
+    cv2.fillPoly(mask, vertices, ignore_mask_color)
+    
+    masked_image = cv2.bitwise_and(img, mask)
+    
+    return masked_image
+
+def draw_lines(img, lines, color=[255, 0, 0], thickness=5):
+    for line in lines:
+        for x1,y1,x2,y2 in line:
+            cv2.line(img, (x1, y1), (x2, y2), color, thickness)
+
+def hough_lines(img, rho=1, theta=np.pi/80, threshold=2, min_line_len=10, max_line_gap=20):
+
+    lines = cv2.HoughLinesP(img, rho, theta, threshold, np.array([]), minLineLength=min_line_len, maxLineGap=max_line_gap)
+    
+
+    line_img = np.zeros((*img.shape, 4), dtype=np.uint8)
+
+    draw_lines(line_img, lines)
+    return line_img
 
 def canny(img, low_threshold, high_threshold):
     """Applies the Canny transform"""
@@ -116,84 +142,55 @@ def gaussian_blur(img, kernel_size):
     return cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
 
 
-def region_of_interest(img, vertices):
-    #defining a blank mask to start with
-    mask = np.zeros_like(img)   
-  
-    #defining a 3 channel or 1 channel color to fill the mask with depending on the input image
-    if len(img.shape) > 2:
-        channel_count = img.shape[2]  # i.e. 3 or 4 depending on your image
-        ignore_mask_color = (255,) * channel_count
-    else:
-        ignore_mask_color = 255
-        
-    #filling pixels inside the polygon defined by "vertices" with the fill color    
-    cv2.fillPoly(mask, vertices, ignore_mask_color)
-    
-    #returning the image only where mask pixels are nonzero
-    masked_image = cv2.bitwise_and(img, mask)
-    return masked_image
-
-def draw_lines(img, lines, color=[255, 0, 0], thickness=5):
-    for line in lines:
-        for x1,y1,x2,y2 in line:
-            cv2.line(img, (x1, y1), (x2, y2), color, thickness)
-
-
-def hough_lines(img, rho=1, theta=np.pi/180, threshold=1, min_line_len=15, max_line_gap=5):
-
-    lines = cv2.HoughLinesP(img, rho, theta, threshold, np.array([]), minLineLength=min_line_len, maxLineGap=max_line_gap)
-    line_img = np.zeros((*img.shape, 3), dtype=np.uint8)
-    draw_lines(line_img, lines)
-    return line_img
-
 def weighted_img(img, initial_img, α=0.8, β=1., λ=0.):
     return cv2.addWeighted(initial_img, α, img, β, λ)
 
 def process_image(image):
-
     ySize = image.shape[0]
     xSize = image.shape[1]
-    left_bottom = [0, ySize]
-    right_bottom = [xSize, ySize]
+    left_bottom = [80, ySize]
+    right_bottom = [xSize-70, ySize]
+    midline = [[xSize/2,0],[xSize/2,ySize]]
     #TODO find horizon and base apex y val on horizon y value
-    apex = [xSize/2, ySize/2] 
+    apex = [xSize/2, ySize/2+30] 
+
+    kernel_size = 3
 
     vertices = np.array( [[left_bottom,apex,apex,right_bottom]], dtype=np.int32 )
 
-    blurred = bilateral_filter(image, 15,100,100);
-    #gaussian_blurred = GaussianBlur(image, 5);
-    #plt.imshow(blurred)
-    grayed = getGrayScaledImage(image);
-    plt.imshow(grayed)
-    masked_image = region_of_interest(blurred, vertices)
-    #plt.imshow(masked_image)
-    edged_image = getCannyEdgeImage(masked_image);
-    #plt.imshow(edged_image)
-    line_detected_image = hough_lines(edged_image)
-    #plt.imshow(line_detected_image)
-    weighted_lined = weighted_img(line_detected_image,image)
-    #plt.imshow(weighted_lined)
-    return weighted_lined
+    processed_image = getGrayScaledImage(image);
+    processed_image = cv2.GaussianBlur(processed_image,(kernel_size, kernel_size), 0)
+    processed_image = getColorSelectedImage(image);
+    processed_image = canny(processed_image, 100,150);#blurs and edg
+    processed_image = region_of_interest(processed_image, vertices)
+    #processed_image = getColorSelectedImage(image);
 
-def process_video(video):
-    white_output = 'white.mp4'
-    clip1 = VideoFileClip("solidWhiteRight.mp4")
-    white_clip = clip1.fl_image(process_image) #NOTE: this function expects color images!!
-    white_clip.write_videofile(white_output, audio=False)
+    processed_image = hough_lines(processed_image);
+    #processed_image = getHoughTransform(processed_image);
+    return processed_image
 
-if __name__ == "__main__":
+
+def bilateral_filter(img, diameter, sigmaColor, sigmaSpace):
+    """(src, d, sigmaColor, sigmaSpace[, dst[, borderType]]) → dst¶"""
+    return cv2.bilateralFilter(img,diameter,sigmaColor,sigmaSpace)
     
-    #image = importImage()
-    image = cv2.imread('exit_ramp.png');
-    print(image.shape);
-    processed_image = process_image(image);
-    cv2.imwrite('test.png', processed_image);
-   
+if __name__ == "__main__":
+
     imgArr = os.listdir("test_images/")
 
-    #for img in imgArr:
-        #process_image(img);
-  
+    for img in imgArr:
+
+        image = (mpimg.imread('test_images/'+img)*255).astype('uint8')
+        #processed_image = process_image(image);
+        grayed = getGrayScaledImage(image);
+        edged_image = getCannyEdgeImage(grayed);
+        line_detected_image = getHoughTransform(edged_image);   
+        plt.imshow(line_detected_image)
+        #cv2.imshow('t',processed_image)
+        #cv2.waitKey(0)
+        #cv2.destroyAllWindows()
+        mpimg.imsave('test_images_results/'+img, line_detected_image);
+
     plt.show()
+
     
